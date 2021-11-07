@@ -15,6 +15,10 @@ class SignIn extends React.Component {
 	onPasswordChange = (event) =>
 		this.setState({ signInPassword: event.target.value });
 
+	saveAuthTokenInSession = (token) => {
+		window.sessionStorage.setItem("token", token);
+	};
+
 	onSubmitSignIn = () => {
 		fetch("https://sheltered-fortress-88899.herokuapp.com/signin", {
 			method: "POST",
@@ -27,10 +31,26 @@ class SignIn extends React.Component {
 			}),
 		})
 			.then((res) => res.json())
-			.then((user) => {
-				if (user.id) {
-					this.props.loadUser(user);
-					this.props.onRouteChange("home");
+			.then((data) => {
+				if (data.userId && data.success === "true") {
+					saveAuthTokenInSession(data.token);
+					fetch(
+						`https://sheltered-fortress-88899.herokuapp.com/profile/${data.userId}`,
+						{
+							method: "post",
+							headers: {
+								"Content-Type": "application/json",
+								Authorization: data.token,
+							},
+						}
+					)
+						.then((resp) => resp.json())
+						.then((user) => {
+							if (user && user.email) {
+								this.props.loadUser(user);
+								this.props.onRouteChange("home");
+							}
+						});
 				}
 			});
 	};
